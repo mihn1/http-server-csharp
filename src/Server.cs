@@ -3,18 +3,16 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-public class Server
+public class HttpServer
 {
     private TcpListener? server;
-    private readonly string addr;
     private readonly int port;
     private readonly ILogger logger;
     private bool isRunning;
 
-    public Server(string addr, int port, ILogger logger)
+    public HttpServer(int port, ILogger logger)
     {
         // TODO: validate input
-        this.addr = addr;
         this.port = port;
         this.logger = logger;
     }
@@ -26,10 +24,9 @@ public class Server
             logger.LogInformation("Server is already running");
             isRunning = true;
         }
-        var ip = new IPAddress(Encoding.UTF8.GetBytes(addr));
-        server = new TcpListener(ip, port);
+        server = new TcpListener(IPAddress.Any, port);
         server.Start();
-        server.AcceptSocket();
+        logger.LogInformation("Listening from {Port}", port);
         this.isRunning = true;
         StartListening();
     }
