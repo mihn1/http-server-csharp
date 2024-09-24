@@ -1,11 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.Net;
-using System.Net.Sockets;
 
 // Setup a logger
 using var loggerFactory = LoggerFactory.Create(builder =>
 {
     builder
+        .AddConsole()
         .SetMinimumLevel(LogLevel.Debug);
 });
 

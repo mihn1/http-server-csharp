@@ -58,19 +58,12 @@ public class HttpServer
     {
         var stream = client.GetStream();
         var buffer = new byte[1024];
-        try
+        int bytesRead;
+        while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) >= 0)
         {
-            int bytesRead;
-            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
-            {
-                var message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                // Handle message
-                HandleMessage(stream, message);
-            }
-        }
-        catch
-        {
-
+            var message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+            // Handle message
+            HandleMessage(stream, message);
         }
     }
 
