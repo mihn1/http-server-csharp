@@ -75,6 +75,7 @@ public class HttpServer
     }
 
     private const string NEW_LINE = "\r\n";
+    private const char SPACE = ' ';
 
     private void HandleMessage(NetworkStream stream, string message)
     {
@@ -83,9 +84,9 @@ public class HttpServer
         var resMessage = new StringBuilder();
         // append headers
         resMessage.Append("HTTP/1.1");
-        resMessage.Append(NEW_LINE);
+        resMessage.Append(SPACE);
         resMessage.Append("200");
-        resMessage.Append(NEW_LINE);
+        resMessage.Append(SPACE);
         resMessage.Append("OK");
         resMessage.Append(NEW_LINE);
         resMessage.Append(NEW_LINE);
