@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 // Setup a logger
 using var loggerFactory = LoggerFactory.Create(builder =>
@@ -8,13 +9,25 @@ using var loggerFactory = LoggerFactory.Create(builder =>
         .SetMinimumLevel(LogLevel.Debug);
 });
 
-var logger = loggerFactory.CreateLogger<HttpServer>();
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
-Console.WriteLine("Logs from your program will appear here!");
 
-// Uncomment this block to pass the first stage
-var server = new HttpServer(4221, logger);
+var options = new HttpServerOptions { Port = 4221 };
+
+Console.WriteLine("args: " + string.Join(",", args));
+if (args.Length > 0)
+{
+    if (args[0] == "--directory")
+    {
+        if (args.Length < 2)
+            throw new ArgumentException("Not enough arguments");
+        Console.WriteLine("Setting directory: " + args[1]);
+        options.Directory = args[1];
+    }
+}
+
+var logger = loggerFactory.CreateLogger<HttpServer>();
+var server = new HttpServer(options, logger);
 server.Start();
 
 
