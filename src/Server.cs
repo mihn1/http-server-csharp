@@ -111,7 +111,7 @@ public class HttpServer
                 res.Content = new StringContent(uAgent, new MediaTypeHeaderValue("text/plain"));
             res.Content.Headers.ContentLength = uAgent!.Length;
         }
-        else if (uri == "/files")
+        else if (uri.StartsWith("/files"))
         {
             var filename = uri[(uri.IndexOf("/files") + 7)..];
             if (string.IsNullOrEmpty(filename))
