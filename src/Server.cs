@@ -58,7 +58,7 @@ public class HttpServer
             var stream = client.GetStream();
             while (true)
             {
-                var message = reader.Read(stream);
+                var message = reader.ReadMessage(stream);
                 HandleRequest(stream, message);
             }
         }
@@ -75,11 +75,11 @@ public class HttpServer
 
     private void HandleRequest(NetworkStream stream, HttpRequestMessage message)
     {
-        logger.LogDebug("Handling message: {Message}", JsonSerializer.Serialize(message));
+        logger.LogDebug("Handling message: {Message}", message.Content);
         if (message.RequestUri == null)
             throw new Exception("Request Uri cannot be null");
 
-        var uri = message.RequestUri!.ToString().AsSpan();
+        var uri = message.RequestUri!.ToString();
         var res = new HttpResponseMessage();
         if (uri == "/")
         {
@@ -87,19 +87,27 @@ public class HttpServer
         }
         else if (uri.StartsWith("/echo"))
         {
-            var path = uri[(uri.IndexOf("/echo") + 6)..];
+            var echo = uri[(uri.IndexOf("/echo") + 6)..];
             res.StatusCode = HttpStatusCode.OK;
-            res.Content = new StringContent(path.ToString(), new MediaTypeHeaderValue("text/plain"));
+            res.Content = new StringContent(echo.ToString(), new MediaTypeHeaderValue("text/plain"));
+            res.Content.Headers.ContentLength = echo.Length;
         }
         else if (uri == "/user-agent")
         {
-            string uAgent = message.Headers.GetValues("User-Agent").FirstOrDefault() ?? "";
+            var uAgent = message.Headers.GetValues("User-Agent").FirstOrDefault();
             res.StatusCode = HttpStatusCode.OK;
-            res.Content = new StringContent(uAgent, new MediaTypeHeaderValue("text/plain"));
+            if (!string.IsNullOrWhiteSpace(uAgent))
+                res.Content = new StringContent(uAgent, new MediaTypeHeaderValue("text/plain"));
+                res.Content.Headers.ContentLength = uAgent!.Length;
         }
         else 
         {
             res.StatusCode = HttpStatusCode.NotFound;
+        }
+
+        if (res.Content.Headers.ContentLength is null)
+        {
+            res.Content.Headers.ContentLength = 0;
         }
 
         writer.WriteAll(stream, res);

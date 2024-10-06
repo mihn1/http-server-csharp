@@ -5,6 +5,6 @@ namespace Common.HTTP.Contracts
 {
     public interface IHttpReader
     {
-        HttpRequestMessage Read(NetworkStream stream);
+        HttpRequestMessage ReadMessage(NetworkStream stream);
     }
 }

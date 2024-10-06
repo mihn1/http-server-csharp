@@ -7,7 +7,7 @@ namespace Common.HTTP
 {
     public class HttpReader : IHttpReader
     {
-        public HttpRequestMessage Read(NetworkStream stream)
+        public HttpRequestMessage ReadMessage(NetworkStream stream)
         {
             // TODO: read a message properly with ending character detection
             var request = new HttpRequestMessage();
@@ -49,7 +49,7 @@ namespace Common.HTTP
                     throw new Exception("Invalid header");
                 }
 
-                message.Headers.Add(parts[0], parts[1].Trim());
+                message.Headers.Add(parts[0].Trim(), parts[1].Trim());
                 bytesCount += buffer.Length;
             }
 

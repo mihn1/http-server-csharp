@@ -12,7 +12,6 @@ namespace Common.HTTP
             stream.Write(GetResponseLineBytes(message));
             stream.Write(GetHeaderBytes(message));
             stream.Write(GetBodyBytes(message));
-            //stream.Write(HttpSemantics.NEW_LINE_BYTES);
         }
 
         private static ReadOnlySpan<byte> GetResponseLineBytes(HttpResponseMessage message)
