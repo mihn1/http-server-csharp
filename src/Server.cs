@@ -2,6 +2,7 @@ using Common.HTTP;
 using Common.HTTP.Contracts;
 using Microsoft.Extensions.Logging;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -88,7 +89,13 @@ public class HttpServer
         {
             var path = uri[(uri.IndexOf("/echo") + 6)..];
             res.StatusCode = HttpStatusCode.OK;
-            res.Content = new StringContent(path.ToString());
+            res.Content = new StringContent(path.ToString(), new MediaTypeHeaderValue("text/plain"));
+        }
+        else if (uri == "/user-agent")
+        {
+            string uAgent = message.Headers.GetValues("User-Agent").FirstOrDefault() ?? "";
+            res.StatusCode = HttpStatusCode.OK;
+            res.Content = new StringContent(uAgent, new MediaTypeHeaderValue("text/plain"));
         }
         else 
         {
