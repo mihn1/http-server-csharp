@@ -113,7 +113,6 @@ public class HttpServer
         }
         else if (uri == "/files")
         {
-
             var filename = uri[(uri.IndexOf("/files") + 7)..];
             if (string.IsNullOrEmpty(filename))
             {
@@ -126,7 +125,7 @@ public class HttpServer
             else
             {
                 var filepath = Path.Combine(options.Directory!, filename);
-                
+                logger.LogInformation("Reading from file {File} - {Exists}", filepath, File.Exists(filepath));
                 if (message.Method == HttpMethod.Get)
                 {
                     if (!File.Exists(filepath))
