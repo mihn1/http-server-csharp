@@ -19,7 +19,6 @@ namespace Common.HTTP
 
         public static string ParseUrl(string? url)
         {
-
             ArgumentException.ThrowIfNullOrWhiteSpace(url);
             return url;
         }

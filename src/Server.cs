@@ -10,16 +10,18 @@ using System.Text.Json.Serialization;
 public class HttpServer
 {
     private TcpListener server;
-    private readonly ILogger logger;
+    private readonly ILogger<HttpServer> logger;
     private readonly IHttpReader reader;
+    private readonly IHttpWriter writer;
     private bool isRunning;
 
-    public HttpServer(int port, ILogger logger)
+    public HttpServer(int port, ILogger<HttpServer> logger)
     {
         // TODO: validate input
         this.logger = logger;
         server = new TcpListener(IPAddress.Any, port);
         reader = new HttpReader();
+        writer = new HttpWriter();
     }
 
     public void Start()
@@ -55,13 +57,13 @@ public class HttpServer
             var stream = client.GetStream();
             while (true)
             {
-                var request = reader.Read(stream);
-                HandleRequest(stream, request);
+                var message = reader.Read(stream);
+                HandleRequest(stream, message);
             }
         }
         catch (Exception ex)
         {
-            logger.LogInformation("Error handling from client: {Message}", ex.Message);
+            logger.LogInformation("Error handling from client: {ex}", ex);
         }
         finally
         {
@@ -70,33 +72,29 @@ public class HttpServer
 
     }
 
-    private void HandleRequest(NetworkStream stream, HttpRequest request)
+    private void HandleRequest(NetworkStream stream, HttpRequestMessage message)
     {
-        logger.LogDebug("Handling message: {Message}", JsonSerializer.Serialize(request));
+        logger.LogDebug("Handling message: {Message}", JsonSerializer.Serialize(message));
+        if (message.RequestUri == null)
+            throw new Exception("Request Uri cannot be null");
 
-        // Hard code response message for now
-        var resMessage = new StringBuilder();
-        // append headers
-        resMessage.Append("HTTP/1.1");
-        resMessage.Append(HttpSemantics.SPACE);
-
-        if (request.Url == "/")
+        var uri = message.RequestUri!.ToString().AsSpan();
+        var res = new HttpResponseMessage();
+        if (uri == "/")
         {
-            resMessage.Append((int)HttpStatusCode.OK);
-            resMessage.Append(HttpSemantics.SPACE);
-            resMessage.Append(HttpStatusCode.OK.ToString());
+            res.StatusCode = HttpStatusCode.OK;
         }
-        else
+        else if (uri.StartsWith("/echo"))
         {
-            resMessage.Append((int)HttpStatusCode.NotFound);
-            resMessage.Append(HttpSemantics.SPACE);
-            resMessage.Append("Not Found");
+            var path = uri[(uri.IndexOf("/echo") + 6)..];
+            res.StatusCode = HttpStatusCode.OK;
+            res.Content = new StringContent(path.ToString());
+        }
+        else 
+        {
+            res.StatusCode = HttpStatusCode.NotFound;
         }
 
-        resMessage.Append(HttpSemantics.NEW_LINE);
-        resMessage.Append(HttpSemantics.NEW_LINE);
-
-        var resBytes = Encoding.ASCII.GetBytes(resMessage.ToString());
-        stream.Write(resBytes);
+        writer.WriteAll(stream, res);
     }
 }

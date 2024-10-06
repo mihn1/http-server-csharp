@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.Http;
-
-namespace Common.HTTP
+﻿namespace Common.HTTP
 {
     public class HttpRequest
     {
@@ -15,5 +11,7 @@ namespace Common.HTTP
         public Dictionary<string, string>? Headers;
 
         public string? Body;
+
+        public int BytesCount;
     }
 }

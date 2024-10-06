@@ -8,7 +8,7 @@ using var loggerFactory = LoggerFactory.Create(builder =>
         .SetMinimumLevel(LogLevel.Debug);
 });
 
-var logger = loggerFactory.CreateLogger<Program>();
+var logger = loggerFactory.CreateLogger<HttpServer>();
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 Console.WriteLine("Logs from your program will appear here!");
