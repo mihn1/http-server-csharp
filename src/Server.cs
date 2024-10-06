@@ -82,13 +82,13 @@ public class HttpServer
 
         if (request.Url == "/")
         {
-            resMessage.Append(HttpStatusCode.OK);
+            resMessage.Append((int)HttpStatusCode.OK);
             resMessage.Append(HttpSemantics.SPACE);
             resMessage.Append(HttpStatusCode.OK.ToString());
         }
         else
         {
-            resMessage.Append(HttpStatusCode.NotFound);
+            resMessage.Append((int)HttpStatusCode.NotFound);
             resMessage.Append(HttpSemantics.SPACE);
             resMessage.Append(HttpStatusCode.NotFound.ToString());
         }
