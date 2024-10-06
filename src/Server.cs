@@ -1,6 +1,7 @@
 using Common.HTTP;
 using Common.HTTP.Contracts;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
@@ -8,19 +9,28 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+
+public class HttpServerOptions
+{
+    public string? Directory { get; set; }
+    public int Port { get; set; }
+}
+
 public class HttpServer
 {
     private TcpListener server;
+    private HttpServerOptions options;
     private readonly ILogger<HttpServer> logger;
     private readonly IHttpReader reader;
     private readonly IHttpWriter writer;
     private bool isRunning;
 
-    public HttpServer(int port, ILogger<HttpServer> logger)
+    public HttpServer(HttpServerOptions options, ILogger<HttpServer> logger)
     {
         // TODO: validate input
         this.logger = logger;
-        server = new TcpListener(IPAddress.Any, port);
+        this.options = options;
+        server = new TcpListener(IPAddress.Any, options.Port);
         reader = new HttpReader();
         writer = new HttpWriter();
     }
@@ -84,6 +94,7 @@ public class HttpServer
         if (uri == "/")
         {
             res.StatusCode = HttpStatusCode.OK;
+            res.Content.Headers.ContentLength = 0;
         }
         else if (uri.StartsWith("/echo"))
         {
@@ -98,14 +109,59 @@ public class HttpServer
             res.StatusCode = HttpStatusCode.OK;
             if (!string.IsNullOrWhiteSpace(uAgent))
                 res.Content = new StringContent(uAgent, new MediaTypeHeaderValue("text/plain"));
-                res.Content.Headers.ContentLength = uAgent!.Length;
+            res.Content.Headers.ContentLength = uAgent!.Length;
         }
-        else 
+        else if (uri == "/files")
+        {
+
+            var filename = uri[(uri.IndexOf("/files") + 7)..];
+            if (string.IsNullOrEmpty(filename))
+            {
+                res.StatusCode = HttpStatusCode.BadRequest;
+            }
+            else if (string.IsNullOrEmpty(options.Directory))
+            {
+                res.StatusCode = HttpStatusCode.NotImplemented;
+            }
+            else
+            {
+                var filepath = Path.Combine(options.Directory!, filename);
+                
+                if (message.Method == HttpMethod.Get)
+                {
+                    if (!File.Exists(filepath))
+                    {
+                        res.StatusCode = HttpStatusCode.NotFound;
+                    }
+                    else
+                    {
+                        var fileContent = File.ReadAllText(filepath); // Read the whole file at once for now
+                        res.Content = new StringContent(fileContent, new MediaTypeHeaderValue("application/octet-stream"));
+                        res.Content.Headers.ContentLength = fileContent.Length;
+                        res.StatusCode = HttpStatusCode.OK;
+                    }
+                }
+                else if (message.Method == HttpMethod.Post)
+                {
+                    if (File.Exists(filepath))
+                    {
+                        File.Delete(filepath);
+                    }
+                    File.WriteAllText(filepath, message.Content?.ToString());
+                    res.StatusCode = HttpStatusCode.Created;
+                }
+                else
+                {
+                    res.StatusCode = HttpStatusCode.BadRequest;
+                }
+            }
+        }
+        else
         {
             res.StatusCode = HttpStatusCode.NotFound;
         }
 
-        if (res.Content.Headers.ContentLength is null)
+        if ((int)res.StatusCode >= 400 && res.Content.Headers.ContentLength is null)
         {
             res.Content.Headers.ContentLength = 0;
         }
