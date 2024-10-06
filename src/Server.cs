@@ -105,7 +105,7 @@ public class HttpServer
         }
         else if (uri == "/user-agent")
         {
-            var uAgent = message.Content?.Headers.GetValues("User-Agent").FirstOrDefault();
+            var uAgent = message.Headers.GetValues("User-Agent").FirstOrDefault();
             res.StatusCode = HttpStatusCode.OK;
             if (!string.IsNullOrWhiteSpace(uAgent))
                 res.Content = new StringContent(uAgent, new MediaTypeHeaderValue("text/plain"));
