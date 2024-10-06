@@ -1,20 +1,25 @@
+using Common.HTTP;
+using Common.HTTP.Contracts;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 public class HttpServer
 {
-    private TcpListener? server;
-    private readonly int port;
+    private TcpListener server;
     private readonly ILogger logger;
+    private readonly IHttpReader reader;
     private bool isRunning;
 
     public HttpServer(int port, ILogger logger)
     {
         // TODO: validate input
-        this.port = port;
         this.logger = logger;
+        server = new TcpListener(IPAddress.Any, port);
+        reader = new HttpReader();
     }
 
     public void Start()
@@ -24,27 +29,22 @@ public class HttpServer
             logger.LogInformation("Server is already running");
             isRunning = true;
         }
-        server = new TcpListener(IPAddress.Any, port);
         server.Start();
-        logger.LogInformation("Listening from {Port}", port);
-        this.isRunning = true;
-        StartListening();
-    }
+        logger.LogInformation("Listening from {Port}", server.LocalEndpoint.ToString());
+        isRunning = true;
 
-    private void StartListening()
-    {
         while (isRunning)
         {
             TcpClient? client = null;
             try
             {
-                client = server!.AcceptTcpClient();
+                client = server.AcceptTcpClient();
                 var clientThread = new Thread(() => HandleClient(client));
                 clientThread.Start();
             }
             catch (Exception ex)
             {
-                logger.LogWarning("Error handling client: {Message}", ex.Message);
+                logger.LogWarning("Error starting new thread for client: {Message}", ex.Message);
                 throw;
             }
             finally
@@ -56,33 +56,47 @@ public class HttpServer
 
     private void HandleClient(TcpClient client)
     {
-        var stream = client.GetStream();
-        var buffer = new byte[1024];
-        int bytesRead;
-        while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) >= 0)
+        try
         {
-            var message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-            // Handle message
-            HandleMessage(stream, message);
+            var stream = client.GetStream();
+            while (true)
+            {
+                var request = reader.Read(stream);
+                HandleRequest(stream, request);
+            }
         }
+        catch (Exception ex)
+        {
+            logger.LogInformation("Error handling from client: {Message}", ex.Message);
+        }
+
     }
 
-    private const string NEW_LINE = "\r\n";
-    private const char SPACE = ' ';
-
-    private void HandleMessage(NetworkStream stream, string message)
+    private void HandleRequest(NetworkStream stream, HttpRequest request)
     {
-        logger.LogDebug("Handling message: {Message}", message);
+        logger.LogDebug("Handling message: {Message}", JsonSerializer.Serialize(request));
+
         // Hard code response message for now
         var resMessage = new StringBuilder();
         // append headers
         resMessage.Append("HTTP/1.1");
-        resMessage.Append(SPACE);
-        resMessage.Append("200");
-        resMessage.Append(SPACE);
-        resMessage.Append("OK");
-        resMessage.Append(NEW_LINE);
-        resMessage.Append(NEW_LINE);
+        resMessage.Append(HttpSemantics.SPACE);
+
+        if (request.Url == "/")
+        {
+            resMessage.Append(HttpStatusCode.OK);
+            resMessage.Append(HttpSemantics.SPACE);
+            resMessage.Append(HttpStatusCode.OK.ToString());
+        }
+        else
+        {
+            resMessage.Append(HttpStatusCode.NotFound);
+            resMessage.Append(HttpSemantics.SPACE);
+            resMessage.Append(HttpStatusCode.NotFound.ToString());
+        }
+
+        resMessage.Append(HttpSemantics.NEW_LINE);
+        resMessage.Append(HttpSemantics.NEW_LINE);
 
         var resBytes = Encoding.ASCII.GetBytes(resMessage.ToString());
         stream.Write(resBytes);
