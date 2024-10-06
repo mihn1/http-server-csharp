@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 
 namespace Common.HTTP
 {
@@ -29,7 +30,7 @@ namespace Common.HTTP
         private int ReadLine(Stream stream, HttpRequest message)
         {
             var bytes = ReadNextLine(stream);
-            var parts = bytes.ToString().Split(' ');
+            var parts = Encoding.UTF8.GetString(bytes).Split(HttpSemantics.SPACE);
             if (parts?.Length != 3)
             {
                 throw new Exception("Invalid HTTP line");
@@ -42,8 +43,8 @@ namespace Common.HTTP
             return bytes.Length;
         }
 
-        private void ReadHeaders(Stream stream, HttpRequest httpRequest) 
-        { 
+        private void ReadHeaders(Stream stream, HttpRequest httpRequest)
+        {
 
         }
 
@@ -63,7 +64,12 @@ namespace Common.HTTP
                 if (nextByte == '\n')
                 {
                     if (prevByte == '\r')
+                    {
+                        // Unwrite the \n byte which has written to the buffer stream
+                        buffer.Position--; 
+                        buffer.SetLength(buffer.Position);
                         break;
+                    }
                 }
 
                 buffer.WriteByte((byte)nextByte);
@@ -75,7 +81,7 @@ namespace Common.HTTP
                 throw new Exception("Connection closed by client");
             }
 
-                return buffer.ToArray();
+            return buffer.ToArray();
         }
     }
 }

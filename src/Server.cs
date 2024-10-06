@@ -35,21 +35,15 @@ public class HttpServer
 
         while (isRunning)
         {
-            TcpClient? client = null;
             try
             {
-                client = server.AcceptTcpClient();
+                var client = server.AcceptTcpClient();
                 var clientThread = new Thread(() => HandleClient(client));
                 clientThread.Start();
             }
             catch (Exception ex)
             {
-                logger.LogWarning("Error starting new thread for client: {Message}", ex.Message);
-                throw;
-            }
-            finally
-            {
-                client?.Close();
+                logger.LogError("Error starting new thread for client: {Message}", ex.Message);
             }
         }
     }
@@ -68,6 +62,10 @@ public class HttpServer
         catch (Exception ex)
         {
             logger.LogInformation("Error handling from client: {Message}", ex.Message);
+        }
+        finally
+        {
+            client.Dispose();
         }
 
     }
