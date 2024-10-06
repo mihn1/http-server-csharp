@@ -26,6 +26,10 @@ if (args.Length > 0)
     }
 }
 
+#if DEBUG
+options.Directory = "/temp/";
+#endif
+
 var logger = loggerFactory.CreateLogger<HttpServer>();
 var server = new HttpServer(options, logger);
 server.Start();

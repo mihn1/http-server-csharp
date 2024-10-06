@@ -1,5 +1,6 @@
 ﻿using Common.HTTP.Contracts;
 using System.Collections.Immutable;
+using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
 
@@ -11,11 +12,10 @@ namespace Common.HTTP
         {
             // TODO: read a message properly with ending character detection
             var request = new HttpRequestMessage();
-            int bytesRead = 0;
 
-            bytesRead += ReadRequestLine(stream, request);
-            bytesRead += ReadHeaders(stream, request);
-            bytesRead += ReadBody(stream, request);
+            _ = ReadRequestLine(stream, request);
+            var (_, contentHeaders) = ReadHeaders(stream, request);
+            _ = ReadBody(stream, request, contentHeaders);
 
             return request;
         }
@@ -36,10 +36,11 @@ namespace Common.HTTP
             return bytes.Length;
         }
 
-        private static int ReadHeaders(NetworkStream stream, HttpRequestMessage message)
+        private static (int, Dictionary<string, string>) ReadHeaders(NetworkStream stream, HttpRequestMessage message)
         {
             int bytesCount = 0;
             ReadOnlySpan<byte> buffer;
+            var contentHeaders = new Dictionary<string, string>();
 
             while ((buffer = ReadNextLine(stream)).Length > 0) 
             {
@@ -49,24 +50,38 @@ namespace Common.HTTP
                     throw new Exception("Invalid header");
                 }
 
-                message.Headers.Add(parts[0].Trim(), parts[1].Trim());
+                var name = parts[0]!.Trim().ToLower();
+                var val = parts[1]!.Trim();
+                if (name.StartsWith("content"))
+                {
+                    // TODO: resolve both content-type and content-length
+                    if (message.Content == null)
+                    {
+                        contentHeaders[name] = val;
+                    }
+                }
+                message.Headers.TryAddWithoutValidation(name, val);
                 bytesCount += buffer.Length;
             }
 
-            return bytesCount;
+            return (bytesCount, contentHeaders);
         }
 
-        private static int ReadBody(NetworkStream stream, HttpRequestMessage message)
+        private static int ReadBody(NetworkStream stream, HttpRequestMessage message, Dictionary<string, string> contentHeaders)
         {
             if (!stream.DataAvailable)
                 return 0;
 
-            var bytes = ReadNextLine(stream);
+            int totalBytes = -1;
+            if (contentHeaders.TryGetValue("content-length", out string? value) && int.TryParse(value, out int parsedValue))
+                totalBytes = parsedValue;
+
+            var bytes = ReadNextLine(stream, totalBytes);
             message.Content = new ByteArrayContent(bytes.ToArray());
             return bytes.Length;
         }
 
-        private static ReadOnlySpan<byte> ReadNextLine(Stream stream)
+        private static ReadOnlySpan<byte> ReadNextLine(NetworkStream stream, int count = -1)
         {
             using MemoryStream buffer = new();
             int nextByte;
@@ -87,6 +102,11 @@ namespace Common.HTTP
 
                 buffer.WriteByte((byte)nextByte);
                 prevByte = nextByte;
+
+                if (count > 0 && buffer.Position >= count)
+                {
+                    break;
+                }
             }
 
             if (nextByte == -1)

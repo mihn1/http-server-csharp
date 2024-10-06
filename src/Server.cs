@@ -105,7 +105,7 @@ public class HttpServer
         }
         else if (uri == "/user-agent")
         {
-            var uAgent = message.Headers.GetValues("User-Agent").FirstOrDefault();
+            var uAgent = message.Content?.Headers.GetValues("User-Agent").FirstOrDefault();
             res.StatusCode = HttpStatusCode.OK;
             if (!string.IsNullOrWhiteSpace(uAgent))
                 res.Content = new StringContent(uAgent, new MediaTypeHeaderValue("text/plain"));
@@ -146,8 +146,10 @@ public class HttpServer
                     {
                         File.Delete(filepath);
                     }
-                    File.WriteAllText(filepath, message.Content?.ToString());
+                    Directory.CreateDirectory(options.Directory);
+                    File.WriteAllBytes(filepath, message.Content?.ReadAsByteArrayAsync()?.Result ?? []);
                     res.StatusCode = HttpStatusCode.Created;
+                    res.Content.Headers.ContentLength = 0;
                 }
                 else
                 {
