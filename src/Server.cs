@@ -90,7 +90,7 @@ public class HttpServer
         {
             resMessage.Append((int)HttpStatusCode.NotFound);
             resMessage.Append(HttpSemantics.SPACE);
-            resMessage.Append(HttpStatusCode.NotFound.ToString());
+            resMessage.Append("Not Found");
         }
 
         resMessage.Append(HttpSemantics.NEW_LINE);
