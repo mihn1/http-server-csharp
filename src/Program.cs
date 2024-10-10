@@ -12,7 +12,11 @@ using var loggerFactory = LoggerFactory.Create(builder =>
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 
-var options = new HttpServerOptions { Port = 4221 };
+var options = new HttpServerOptions
+{
+    Port = 4221,
+    SupportedEncodings = ["gzip"],
+};
 
 Console.WriteLine("args: " + string.Join(",", args));
 if (args.Length > 0)

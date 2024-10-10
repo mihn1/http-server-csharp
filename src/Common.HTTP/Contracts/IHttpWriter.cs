@@ -1,7 +1,9 @@
-﻿namespace Common.HTTP.Contracts
+﻿using System.Net.Sockets;
+
+namespace Common.HTTP.Contracts
 {
     public interface IHttpWriter
     {
-        void WriteAll(Stream stream, HttpResponseMessage message);
+        void WriteAll(NetworkStream stream, HttpResponseMessage message);
     }
 }

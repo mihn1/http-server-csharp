@@ -1,13 +1,14 @@
 ﻿using Common.HTTP.Contracts;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Text;
 
 namespace Common.HTTP
 {
     public class HttpWriter : IHttpWriter
     {
-        public void WriteAll(Stream stream, HttpResponseMessage message)
+        public void WriteAll(NetworkStream stream, HttpResponseMessage message)
         {
             stream.Write(GetResponseLineBytes(message));
             stream.Write(GetHeaderBytes(message));

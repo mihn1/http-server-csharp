@@ -54,7 +54,6 @@ namespace Common.HTTP
                 var val = parts[1]!.Trim();
                 if (name.StartsWith("content"))
                 {
-                    // TODO: resolve both content-type and content-length
                     if (message.Content == null)
                     {
                         contentHeaders[name] = val;

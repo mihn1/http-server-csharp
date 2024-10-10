@@ -1,19 +1,19 @@
 using Common.HTTP;
 using Common.HTTP.Contracts;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 
 public class HttpServerOptions
 {
     public string? Directory { get; set; }
     public int Port { get; set; }
+    public string[] SupportedEncodings { get; set; }
 }
 
 public class HttpServer
@@ -89,8 +89,10 @@ public class HttpServer
         if (message.RequestUri == null)
             throw new Exception("Request Uri cannot be null");
 
+        var encoding = message.Headers.AcceptEncoding.Select(x => x.Value).Intersect(options.SupportedEncodings).FirstOrDefault();
         var uri = message.RequestUri!.ToString();
         var res = new HttpResponseMessage();
+
         if (uri == "/")
         {
             res.StatusCode = HttpStatusCode.OK;
@@ -100,16 +102,13 @@ public class HttpServer
         {
             var echo = uri[(uri.IndexOf("/echo") + 6)..];
             res.StatusCode = HttpStatusCode.OK;
-            res.Content = new StringContent(echo.ToString(), new MediaTypeHeaderValue("text/plain"));
-            res.Content.Headers.ContentLength = echo.Length;
+            EncodeStringResponse(res, echo.ToString(), encoding);
         }
         else if (uri == "/user-agent")
         {
             var uAgent = message.Headers.GetValues("User-Agent").FirstOrDefault();
             res.StatusCode = HttpStatusCode.OK;
-            if (!string.IsNullOrWhiteSpace(uAgent))
-                res.Content = new StringContent(uAgent, new MediaTypeHeaderValue("text/plain"));
-            res.Content.Headers.ContentLength = uAgent!.Length;
+            EncodeStringResponse(res, uAgent, encoding);
         }
         else if (uri.StartsWith("/files"))
         {
@@ -168,5 +167,33 @@ public class HttpServer
         }
 
         writer.WriteAll(stream, res);
+    }
+
+    private void EncodeStringResponse(HttpResponseMessage res, string? content, string? encoding)
+    {
+        if (encoding == "gzip" && content != null)
+        {
+            // transform content
+            res.Content.Headers.Add("Content-Encoding", encoding);
+            using MemoryStream memoryStream = new();
+            using GZipStream gzipStream = new(memoryStream, CompressionMode.Compress, true);
+            byte[] responseBytes = Encoding.UTF8.GetBytes(content);
+            gzipStream.Write(responseBytes, 0, responseBytes.Length);
+
+            // Write the compressed data to the response stream.
+            byte[] compressedBytes = memoryStream.ToArray();
+            content = Convert.ToHexString(compressedBytes);
+
+        }
+
+        if (!string.IsNullOrWhiteSpace(content))
+        {
+            res.Content = new StringContent(content, new MediaTypeHeaderValue("text/plain"));
+            res.Content.Headers.ContentLength = content.Length;
+        }
+        else
+        {
+            res.Content.Headers.ContentLength = 0;
+        }
     }
 }
