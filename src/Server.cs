@@ -171,10 +171,15 @@ public class HttpServer
 
     private void EncodeStringResponse(HttpResponseMessage res, string? content, string? encoding)
     {
-        if (encoding == "gzip" && content != null)
+        if (string.IsNullOrEmpty(content))
+        {
+            res.Content.Headers.ContentLength = 0;
+            return;
+        }
+
+        if (encoding == "gzip")
         {
             // transform content
-            res.Content.Headers.Add("Content-Encoding", encoding);
             using MemoryStream memoryStream = new();
             using GZipStream gzipStream = new(memoryStream, CompressionMode.Compress, true);
             byte[] responseBytes = Encoding.UTF8.GetBytes(content);
@@ -183,17 +188,14 @@ public class HttpServer
             // Write the compressed data to the response stream.
             byte[] compressedBytes = memoryStream.ToArray();
             content = Convert.ToHexString(compressedBytes);
-
-        }
-
-        if (!string.IsNullOrWhiteSpace(content))
-        {
             res.Content = new StringContent(content, new MediaTypeHeaderValue("text/plain"));
-            res.Content.Headers.ContentLength = content.Length;
+            res.Content.Headers.Add("Content-Encoding", encoding);
         }
         else
         {
-            res.Content.Headers.ContentLength = 0;
+            res.Content = new StringContent(content, new MediaTypeHeaderValue("text/plain"));
         }
+
+        res.Content.Headers.ContentLength = content.Length;
     }
 }
