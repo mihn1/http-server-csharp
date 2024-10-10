@@ -182,20 +182,25 @@ public class HttpServer
             // transform content
             using MemoryStream memoryStream = new();
             using GZipStream gzipStream = new(memoryStream, CompressionMode.Compress, true);
-            byte[] responseBytes = Encoding.UTF8.GetBytes(content);
+            byte[] responseBytes = Encoding.ASCII.GetBytes(content);
             gzipStream.Write(responseBytes, 0, responseBytes.Length);
 
             // Write the compressed data to the response stream.
             byte[] compressedBytes = memoryStream.ToArray();
-            content = Convert.ToHexString(compressedBytes);
-            res.Content = new StringContent(content, new MediaTypeHeaderValue("text/plain"));
+            //content = Convert.ToHexString(compressedBytes);
+            //res.Content = new StringContent(content, new MediaTypeHeaderValue("text/plain"));
+            //res.Content.Headers.ContentLength = content.Length;
+
+            res.Content = new ByteArrayContent(compressedBytes);
+            res.Content.Headers.ContentLength = compressedBytes.Length;
+            res.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
             res.Content.Headers.Add("Content-Encoding", encoding);
         }
         else
         {
             res.Content = new StringContent(content, new MediaTypeHeaderValue("text/plain"));
+            res.Content.Headers.ContentLength = content.Length;
         }
 
-        res.Content.Headers.ContentLength = content.Length;
     }
 }
