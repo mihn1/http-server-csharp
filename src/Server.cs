@@ -181,9 +181,9 @@ public class HttpServer
         {
             // transform content
             using MemoryStream memoryStream = new();
-            using GZipStream gzipStream = new(memoryStream, CompressionMode.Compress, true);
-            byte[] responseBytes = Encoding.ASCII.GetBytes(content);
-            gzipStream.Write(responseBytes, 0, responseBytes.Length);
+            using GZipStream gzipStream = new(memoryStream, CompressionMode.Compress);
+            byte[] responseBytes = Encoding.UTF8.GetBytes(content);
+            gzipStream.Write(responseBytes);
 
             // Write the compressed data to the response stream.
             byte[] compressedBytes = memoryStream.ToArray();
